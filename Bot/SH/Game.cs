@@ -434,7 +434,7 @@ namespace Bot.SH
             }
         }
 
-        private async Task<bool> AskNeinJa(int num)
+        private async Task<RestUserMessage> SendNeinJa(int num)
         {
             var ChoiceMessage = await Guild.GetTextChannel(Users[num].ChatId)
                                         .SendMessageAsync("Vote Nein or Ja!")
@@ -443,12 +443,17 @@ namespace Bot.SH
             {
                 await ChoiceMessage.AddReactionAsync(VoteNeinJa[i]).ConfigureAwait(false);
             }
+            Console.WriteLine($"{PlayerName(num)} asked for Ja/Nein.");
+            return ChoiceMessage;
+        }
+        private async Task<bool> AskNeinJa(int num, RestUserMessage message)
+        {
             int choice = -1;
             do
             {
                 for (int i = 0; i < VoteNeinJa.Length; i++)
                 {
-                    var arr = (await ChoiceMessage.GetReactionUsersAsync(VoteNeinJa[i], 2)
+                    var arr = (await message.GetReactionUsersAsync(VoteNeinJa[i], 2)
                                        .FlattenAsync().ConfigureAwait(false)).ToArray();
                     if (arr.Length > 1)
                     {
@@ -483,7 +488,7 @@ namespace Bot.SH
             {
                 if (Users[i].Alive)
                 {
-                    VotePres.Add(AskNeinJa(i));
+                    VotePres.Add(AskNeinJa(i, await SendNeinJa(i).ConfigureAwait(false)));
                 }
             }
             //Task.WaitAll(VotePres.ToArray());
@@ -542,13 +547,13 @@ namespace Bot.SH
                 await Guild.GetTextChannel(Users[CurChanc].ChatId)
                         .SendMessageAsync("Do you want to ACCEPT a law?")
                         .ConfigureAwait(false);
-                if (await AskNeinJa(CurChanc).ConfigureAwait(false) == false)
+                if (await AskNeinJa(CurChanc, await SendNeinJa(CurChanc).ConfigureAwait(false)).ConfigureAwait(false) == false)
                 {
                     Console.WriteLine($"Chancellor is against the law!");
                     await Guild.GetTextChannel(Users[CurPres].ChatId)
                             .SendMessageAsync("Do you want to ACCEPT a law?")
                             .ConfigureAwait(false);
-                    if (await AskNeinJa(CurPres).ConfigureAwait(false) == false)
+                    if (await AskNeinJa(CurPres, await SendNeinJa(CurPres).ConfigureAwait(false)).ConfigureAwait(false) == false)
                     {
                         Console.WriteLine($"President is against the law!");
                         await Mailing("Veto!").ConfigureAwait(false);
